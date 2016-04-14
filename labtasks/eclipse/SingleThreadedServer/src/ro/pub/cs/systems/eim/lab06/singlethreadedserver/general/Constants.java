@@ -1,5 +1,6 @@
 package ro.pub.cs.systems.eim.lab06.singlethreadedserver.general;
 
+
 public interface Constants {
 
     public final static String  SERVER_HOST  = "localhost";

@@ -19,8 +19,10 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 import ro.pub.cs.systems.eim.lab06.pheasantgame.R;
 import ro.pub.cs.systems.eim.lab06.pheasantgame.general.Constants;
+
 
 public class ClientFragment extends Fragment {
 
@@ -43,45 +45,51 @@ public class ClientFragment extends Fragment {
             CommunicationThread communicationThread = new CommunicationThread(socket);
             communicationThread.start();
         }
+        
     }
 
+    
     private class CommunicationThread extends Thread {
 
         private Socket socket = null;
+        private String word;
 
+        
         public CommunicationThread(Socket socket) {
             this.socket = socket;
             if (socket == null) {
                 try {
                     socket = new Socket(Constants.SERVER_HOST, Constants.SERVER_PORT);
-                } catch (UnknownHostException unknownHostException) {
+                }
+                catch (UnknownHostException unknownHostException) {
                     Log.e(Constants.TAG, "An exception has occurred: " + unknownHostException.getMessage());
-                    if (Constants.DEBUG) {
+                    if (Constants.DEBUG)
                         unknownHostException.printStackTrace();
-                    }
-                } catch (IOException ioException) {
+                }
+                catch (IOException ioException) {
                     Log.e(Constants.TAG, "An exception has occurred: " + ioException.getMessage());
-                    if (Constants.DEBUG) {
+                    if (Constants.DEBUG)
                         ioException.printStackTrace();
-                    }
                 }
             }
             Log.d(Constants.TAG, "[CLIENT] Created communication thread with: " + socket.getInetAddress() + ":" + socket.getLocalPort());
         }
 
+        
+        @Override
         public void run() {
             InputStream responseStream = null;
             OutputStream requestStream = null;
             try {
                 requestStream = socket.getOutputStream();
-            } catch (IOException ioException) {
-                Log.e(Constants.TAG, "An exception has occurred: " + ioException.getMessage());
-                if (Constants.DEBUG) {
-                    ioException.printStackTrace();
-                }
             }
+            catch (IOException ioException) {
+                Log.e(Constants.TAG, "An exception has occurred: " + ioException.getMessage());
+                if (Constants.DEBUG)
+                    ioException.printStackTrace();
+            }
+            
             PrintStream requestPrintWriter = new PrintStream(requestStream);
-
             try {
                 responseStream = socket.getInputStream();
             } catch (IOException ioException) {
@@ -92,16 +100,88 @@ public class ClientFragment extends Fragment {
             }
             BufferedReader responseReader = new BufferedReader(new InputStreamReader(responseStream));
 
-            // TODO: exercise 7b
-
+            word = wordEditText.getText().toString();
+            //trimitem cuvantul din EditText la server
+            if (word.length() > 2) {
+            	Log.d(Constants.TAG, "[CLIENT] Sent \"" + word + "\" on socket " + socket);
+            	requestPrintWriter.println(word);
+                mostRecentWordSent = word;
+                clientHistoryTextView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        clientHistoryTextView.setText("Client sent word " + word + " to server\n" + clientHistoryTextView.getText().toString());
+                    }
+                });
+            }
+            else {
+            	handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getActivity(), "Word must be at least 2 characters long!", Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+            
+            //vedem ce primim de la server
+            try {
+            	word = responseReader.readLine();
+            	Log.d(Constants.TAG, "[CLIENT] Received \"" + word + "\", most recent word was \"" + mostRecentWordSent + "\" on socket " + socket);
+                clientHistoryTextView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        clientHistoryTextView.setText("Client received word " + word + " from server\n" + clientHistoryTextView.getText().toString());
+                    }
+                });
+                
+                if (Constants.END_GAME.equals(word)) {
+                	handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            wordEditText.setText("");
+                            wordEditText.setEnabled(false);
+                            sendButton.setEnabled(false);
+                            clientHistoryTextView.setText("Communication ended!\n" + clientHistoryTextView.getText().toString());
+                        }
+                    });
+                }
+                //daca am primit ceva diferit de cuvantul trimis la server
+                else if (mostRecentWordSent.isEmpty() || !mostRecentWordSent.equals(word)) {
+                	mostRecentValidPrefix = word.substring(word.length() - 2, word.length());
+                    wordEditText.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            wordEditText.setText(mostRecentValidPrefix);
+                            wordEditText.setSelection(2);
+                        }
+                    });
+                }
+                //daca am primit acelasi cuvant pe care l-am trimis
+                else {
+                	wordEditText.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            wordEditText.setText(mostRecentValidPrefix);
+                            if ((mostRecentValidPrefix != null) && (mostRecentValidPrefix.length() == 2)) 
+                                wordEditText.setSelection(2);
+                        }
+                    });
+                }
+            }
+            catch (IOException ioException) {
+            	Log.e(Constants.TAG, "An exception has occurred: " + ioException.getMessage());
+                if (Constants.DEBUG)
+                    ioException.printStackTrace();
+            }
         }
     }
 
+    
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle state) {
         return inflater.inflate(R.layout.fragment_client, parent, false);
     }
 
+    
     @Override
     public void onActivityCreated(Bundle state) {
         super.onActivityCreated(state);
@@ -118,16 +198,16 @@ public class ClientFragment extends Fragment {
             public void run() {
                 try {
                     socket = new Socket(Constants.SERVER_HOST, Constants.SERVER_PORT);
-                } catch (UnknownHostException unknownHostException) {
+                }
+                catch (UnknownHostException unknownHostException) {
                     Log.e(Constants.TAG, "An exception has occurred: "+unknownHostException.getMessage());
-                    if (Constants.DEBUG) {
+                    if (Constants.DEBUG)
                         unknownHostException.printStackTrace();
-                    }
-                } catch (IOException ioException) {
+                }
+                catch (IOException ioException) {
                     Log.e(Constants.TAG, "An exception has occurred: "+ioException.getMessage());
-                    if (Constants.DEBUG) {
+                    if (Constants.DEBUG)
                         ioException.printStackTrace();
-                    }
                 }
             }
         }).start();

@@ -18,6 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+
 public class Utilities {
 
     private static class WordFinderService extends AsyncTask<String, Object, List<String>> {
@@ -50,6 +51,7 @@ public class Utilities {
         }
     }
 
+    
     public static List<String> getWordListStartingWith(String prefix) {
         AsyncTask<String, Object, List<String>> wordFinderService = new WordFinderService().execute(prefix);
         try {
@@ -68,6 +70,7 @@ public class Utilities {
         return null;
     }
 
+    
     public static boolean wordValidation(String word) {
         return !getWordListStartingWith(word).isEmpty();
     }

@@ -1,5 +1,6 @@
 package ro.pub.cs.systems.eim.lab06.pheasantgame.general;
 
+
 public interface Constants {
 
     public final static boolean DEBUG                                 = true;

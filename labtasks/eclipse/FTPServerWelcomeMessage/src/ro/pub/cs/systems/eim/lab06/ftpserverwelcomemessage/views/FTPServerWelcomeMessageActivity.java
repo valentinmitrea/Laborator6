@@ -1,5 +1,8 @@
 package ro.pub.cs.systems.eim.lab06.ftpserverwelcomemessage.views;
 
+import java.io.BufferedReader;
+import java.net.Socket;
+
 import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -12,6 +15,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 import ro.pub.cs.systems.eim.lab06.ftpserverwelcomemessage.R;
 import ro.pub.cs.systems.eim.lab06.ftpserverwelcomemessage.general.Constants;
+import ro.pub.cs.systems.eim.lab06.ftpserverwelcomemessage.general.Utilities;
+
 
 public class FTPServerWelcomeMessageActivity extends Activity {
 
@@ -24,21 +29,32 @@ public class FTPServerWelcomeMessageActivity extends Activity {
         @Override
         protected Void doInBackground(String... params) {
             try {
-                // TODO: exercise 4
-                // open socket with FTPServerAddress (taken from params[0]) and port (Constants.FTP_PORT = 21)
-                // get the BufferedReader attached to the socket (call to the Utilities.getReader() method)
-                // should the line start with Constants.FTP_MULTILINE_START_CODE, the welcome message is processed
-                // read lines from server while
+                //open socket with FTPServerAddress (taken from params[0]) and port (Constants.FTP_PORT = 21)
+                //get the BufferedReader attached to the socket (call to the Utilities.getReader() method)
+                //should the line start with Constants.FTP_MULTILINE_START_CODE, the welcome message is processed
+                //read lines from server while
                 // - the value is different from Constants.FTP_MULTILINE_END_CODE1
                 // - the value does not start with Constants.FTP_MULTILINE_START_CODE2
-                // append the line to the welcomeMessageTextView text view content (on the UI thread!!!) - publishProgress(...)
-                // close the socket
-            } catch (Exception exception) {
-                Log.d(Constants.TAG, exception.getMessage());
-                if (Constants.DEBUG) {
-                	exception.printStackTrace();
-                }
+                //append the line to the welcomeMessageTextView text view content (on the UI thread!!!) - publishProgress(...)
+                //close the socket
+            	Socket socket = new Socket(FTPServerAddressEditText.getText().toString(), Constants.FTP_PORT);
+            	BufferedReader bufferedReader = Utilities.getReader(socket);
+            	
+            	String line = bufferedReader.readLine();
+            	if (line.startsWith(Constants.FTP_MULTILINE_START_CODE))
+            		while (!line.equals(Constants.FTP_MULTILINE_END_CODE1) && !line.startsWith(Constants.FTP_MULTILINE_END_CODE2)) {
+            			line = bufferedReader.readLine();
+            			publishProgress(line);
+            		}
+            	
+            	socket.close();
             }
+            catch (Exception exception) {
+                Log.d(Constants.TAG, exception.getMessage());
+                if (Constants.DEBUG)
+                	exception.printStackTrace();
+            }
+            
             return null;
         }
 
@@ -49,8 +65,8 @@ public class FTPServerWelcomeMessageActivity extends Activity {
 
         @Override
         protected void onProgressUpdate(String... progress) {
-        	// TODO: exercise 4
-            // append the progress[0] to the FTPServerAddressEditText edit text
+            //append the progress[0] to the FTPServerAddressEditText edit text
+        	welcomeMessageTextView.setText(welcomeMessageTextView.getText() + progress[0]);
         }
 
         @Override
@@ -59,13 +75,13 @@ public class FTPServerWelcomeMessageActivity extends Activity {
 
     private ButtonClickListener buttonClickListener = new ButtonClickListener();
     private class ButtonClickListener implements Button.OnClickListener {
-
         @Override
         public void onClick(View view) {
             FTPServerCommunicationAsyncTask ftpServerCommunicationAsyncTask = new FTPServerCommunicationAsyncTask();
             ftpServerCommunicationAsyncTask.execute(FTPServerAddressEditText.getText().toString());
         }
     }
+
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -80,12 +96,15 @@ public class FTPServerWelcomeMessageActivity extends Activity {
         welcomeMessageTextView = (TextView)findViewById(R.id.welcome_message_text_view);
 	}
 
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.ftpserver_welcome_message, menu);
+		
 		return true;
 	}
+
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
@@ -93,9 +112,10 @@ public class FTPServerWelcomeMessageActivity extends Activity {
 		// automatically handle clicks on the Home/Up button, so long
 		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
-		if (id == R.id.action_settings) {
+		if (id == R.id.action_settings)
 			return true;
-		}
+		
 		return super.onOptionsItemSelected(item);
 	}
+	
 }
